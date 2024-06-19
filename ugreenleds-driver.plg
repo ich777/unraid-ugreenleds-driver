@@ -1,0 +1,214 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+  <!ENTITY name      "ugreenleds-driver">
+  <!ENTITY author    "ich777">
+  <!ENTITY version   "2024.06.19">
+  <!ENTITY gitURL    "https://github.com/&author;/unraid-&name;/raw/master">
+  <!ENTITY pluginURL "&gitURL;/&name;.plg">
+  <!ENTITY plugin    "/boot/config/plugins/&name;">
+  <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
+  <!ENTITY packages  "/boot/config/plugins/&name;/packages">
+]>
+
+<PLUGIN  name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="7.0.0-beta.0.1" support="https://forums.unraid.net/topic/92865-support-ich777-amd-vendor-reset-coraltpu-hpsahba/">
+
+
+<CHANGES>
+
+###2024.06.19
+- Initial release
+
+</CHANGES>
+
+<FILE Name="&emhttp;/README.md">
+<INLINE>
+**UGREEN LED Driver**
+
+This package contains the UGREEN LED Driver which will allow you to get your LEDs to work on your UGREEN NAS (please note that not all models are supported).  
+  
+The plugin is based on: https://github.com/miskcoo/ugreen_dx4600_leds_controller
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE>
+
+download() {
+if wget -q -nc --show-progress --progress=bar:force:noscroll -O "&packages;/${KERNEL_V%%-*}/${LAT_PACKAGE}" "${DL_URL}/${LAT_PACKAGE}" ; then
+  wget -q -nc --show-progress --progress=bar:force:noscroll -O "&packages;/${KERNEL_V%%-*}/${LAT_PACKAGE}.md5" "${DL_URL}/${LAT_PACKAGE}.md5"
+  if [ "$(md5sum &packages;/${KERNEL_V%%-*}/${LAT_PACKAGE} | awk '{print $1}')" != "$(cat &packages;/${KERNEL_V%%-*}/${LAT_PACKAGE}.md5 | awk '{print $1}')" ]; then
+    echo
+    echo "-----ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR------"
+    echo "--------------------------------CHECKSUM ERROR!---------------------------------"
+    rm -rf &plugin; &emhttp;
+    exit 1
+  fi
+  echo
+  echo "----------Successfully downloaded UGREEN LED Driver, please wait...!-----------"
+else
+  echo
+  echo "-----ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR-----"
+  echo "---------------------Can't download UGREEN LED Driver--------------------------"
+  rm -rf &plugin; &emhttp;
+  exit 1
+fi
+}
+
+check() {
+if ! ls -1 &packages;/${KERNEL_V%%-*}/ | grep -q "${PACKAGE}" ; then
+  LAT_PACKAGE="$(wget -qO- https://api.github.com/repos/ich777/unraid-ugreenleds-driver/releases/tags/${KERNEL_V} | jq -r '.assets[].name' | grep "${PACKAGE}" | grep -E -v '\.md5$' | sort -V | tail -1)"
+  echo
+  echo "----------------Downloading UGREEN LED Driver, please wait...!----------------"
+  echo "----------This could take some time, please don't close this window!----------"
+  download
+else
+  echo
+  echo "----------------------UGREEN LED Driver found locally!------------------------"
+fi
+}
+
+# Install package function
+install() {
+  /sbin/installpkg "&packages;/${KERNEL_V%%-*}/${PACKAGE}*.txz" >/dev/null
+  /sbin/depmod -a
+}
+
+# Modprobe function
+activate() {
+  /sbin/modprobe i2c-dev
+  /sbin/modprobe led-ugreen
+  /sbin/modprobe ledtrig-oneshot
+  /sbin/modprobe ledtrig-netdev
+  sleep 2
+}
+
+# Netdevmon function
+netdevmon() {
+  echo netdev > /sys/class/leds/netdev/trigger
+  echo ${INTERFACE} > /sys/class/leds/netdev/device_name
+  echo 1 > /sys/class/leds/netdev/link
+  echo 1 > /sys/class/leds/netdev/tx
+  echo 1 > /sys/class/leds/netdev/rx
+  echo 200 > /sys/class/leds/netdev/interval
+}
+
+# Define Variables
+KERNEL_V="$(uname -r)"
+PACKAGE="ugreen_leds"
+DL_URL="https://github.com/ich777/unraid-ugreenleds-driver/releases/download/$KERNEL_V"
+
+# Create package directory for running Kernel
+if [ ! -d "&packages;/${KERNEL_V%%-*}" ]; then
+  mkdir -p "&packages;/${KERNEL_V%%-*}"
+fi
+
+# Create settings file
+if [ ! -f "&plugin;/settings.cfg" ]; then
+  echo "MAPPING_METHOD=hctl
+LED_REFRESH_INTERVAL=0.5" > &plugin;/settings.cfg
+
+# Check for old packages
+rm -rf $(ls -d &packages;/* | grep -v "${KERNEL_V%%-*}")
+
+# Check if UGREEN LED Driver is already downloaded
+check
+
+# Check if UGREEN LED Driver module is already installed
+if ! modinfo led-ugreen -0 >/dev/null 2>&amp;1 ; then
+  install
+fi
+
+# Load drivers (because why not?)
+activate
+
+# Check if ugreen-diskiomon is already started
+if ! pidof -f "/usr/bin/ugreen-diskiomon" >/dev/null 2>&amp;1 ; then
+  echo "/usr/bin/ugreen-diskiomon" | at now -M
+fi
+
+# Get interface from network config and check if netdevmon is already configured
+INTERFACE="$(cat /boot/config/network.cfg | grep "IFNAME\[0\]" | cut -d '=' -f2 | sed 's/\"//g')"
+if [ "$(cat /sys/class/leds/netdev/device_name)" != "${INTERFACE}" ]; then
+  netdevmon
+fi
+
+# Download logo
+if [ ! -f "&plugin;/&name;.png" ]; then
+  wget -q -nc --show-progress --progress=bar:force:noscroll -O "&plugin;/&name;.png" "https://raw.githubusercontent.com/ich777/docker-templates/master/ich777/images/ugreennas.png"
+fi
+
+#Install icon
+if [ ! -f "&emhttp;/images/&name;.png" ]; then
+  if [ ! -d "&emhttp;/images" ]; then
+    mkdir -p &emhttp;/images
+  fi
+  cp &plugin;/&name;.png &emhttp;/images/
+fi
+
+#Check if Plugin Update Helper is downloaded and up-to-date
+if [ ! -f &plugin;/plugin_update_helper ]; then
+  wget -q -T 5 -O &plugin;/plugin_update_helper "https://raw.githubusercontent.com/ich777/unraid-plugin_update_helper/master/plugin_update_helper"
+else
+  CUR_V="$(grep -E "Plugin-Update-Helper version:" &plugin;/plugin_update_helper | awk '{print $4}')"
+  if [ ! -s /tmp/update-helper ]; then
+    echo "$(wget -T5 -qO- https://raw.githubusercontent.com/ich777/unraid-plugin_update_helper/master/plugin_update_helper | grep -E "Plugin-Update-Helper version:" | awk '{print $4}')" > /tmp/update-helper
+    AVAIL_V="$(cat /tmp/update-helper)"
+  else
+    AVAIL_V="$(cat /tmp/update-helper)"
+  fi
+  if [ ! -z "$AVAIL_V" ]; then
+    COMPARE="$(sort -V &lt;(echo -e "${AVAIL_V}\n$CUR_V") | tail -1)"
+    if [ "$CUR_V" != "$COMPARE" ]; then
+      wget -q -T 5 -O &plugin;/plugin_update_helper "https://raw.githubusercontent.com/ich777/unraid-plugin_update_helper/master/plugin_update_helper"
+    fi
+  fi
+fi
+
+#Check if Plugin Update Helper is installed and up to date
+if [ ! -f /usr/bin/plugin_update_helper ]; then
+  cp &plugin;/plugin_update_helper /usr/bin/plugin_update_helper
+  chmod +x /usr/bin/plugin_update_helper
+else
+  PLUGIN_V="$(grep -E "Plugin-Update-Helper version:" &plugin;/plugin_update_helper | awk '{print $4}')"
+  INST_V="$(grep -E "Plugin-Update-Helper version:" /usr/bin/plugin_update_helper | awk '{print $4}')"
+  COMPARE="$(sort -V &lt;(echo -e "${PLUGIN_V}\n$INST_V") | tail -1)"
+  if [ "$INST_V" != "$COMPARE" ]; then
+    kill $(ps aux | grep -E "inotifywait -q /boot/changes.txt -e move_self,delete_self" | grep -v "grep -E inotifywait" | awk '{print $2}') 2>/dev/null
+    sleep 1
+    cp &plugin;/plugin_update_helper /usr/bin/plugin_update_helper
+    chmod +x /usr/bin/plugin_update_helper
+  fi
+fi
+
+#Start Plugin Update Helper
+if [ -z "$(ps aux | grep -E "inotifywait -q /boot/changes.txt -e move_self,delete_self" | grep -v "grep -E inotifywait" | awk '{print $2}')" ]; then
+  echo "/usr/bin/plugin_update_helper" | at now &gt; /dev/null 2&gt;&amp;1
+fi
+
+echo
+echo "-----------------Installation of UGREEN LED Driver successful-----------------"
+echo
+
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+
+echo "----------------------------------------"
+echo "-----Uninstalling UGREEN LED Driver-----"
+echo "----------------------------------------"
+kill $(pgrep -f "/usr/bin/ugreen-diskiomon") >/dev/null 2>&amp;1
+# Remove plugin related files
+removepkg &name;-&version;
+rm -rf &emhttp;
+rm -rf &plugin;
+echo
+echo "---------------------------------------------------------------------------"
+echo "---------UGREEN LED Driver uninstalled, please reboot your server!---------"
+echo "---------------------------------------------------------------------------"
+echo
+
+</INLINE>
+</FILE>
+</PLUGIN>
