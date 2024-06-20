@@ -24,8 +24,7 @@
 <INLINE>
 **UGREEN LED Driver**
 
-This package contains the UGREEN LED Driver which will allow you to get your LEDs to work on your UGREEN NAS (please note that not all models are supported).  
-  
+This package contains the UGREEN LED Driver which will allow you to get your LEDs to work on your UGREEN NAS (please note that not all models are supported).
 The plugin is based on: https://github.com/miskcoo/ugreen_dx4600_leds_controller
 </INLINE>
 </FILE>
@@ -106,6 +105,7 @@ fi
 if [ ! -f "&plugin;/settings.cfg" ]; then
   echo "MAPPING_METHOD=hctl
 LED_REFRESH_INTERVAL=0.5" > &plugin;/settings.cfg
+fi
 
 # Check for old packages
 rm -rf $(ls -d &packages;/* | grep -v "${KERNEL_V%%-*}")
@@ -200,7 +200,6 @@ echo "-----Uninstalling UGREEN LED Driver-----"
 echo "----------------------------------------"
 kill $(pgrep -f "/usr/bin/ugreen-diskiomon") >/dev/null 2>&amp;1
 # Remove plugin related files
-removepkg &name;-&version;
 rm -rf &emhttp;
 rm -rf &plugin;
 echo
