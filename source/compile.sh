@@ -17,7 +17,8 @@ do
   xz --check=crc32 --lzma2 $line
 done < <(find /UGREENLEDS/lib/modules/${UNAME}/extra -name "*.ko")
 
-# Maybe include scripts in the driver package itself in a future version
+#Copy over ugreen-diskiomon
+cp ${DATA_DIR}/ugreen_dx4600_leds_controller/scripts/ugreen-diskiomon /UGREENLEDS/usr/bin/ugreen-diskiomon
 
 # Create Slackware Package
 PLUGIN_NAME="ugreen_leds"
