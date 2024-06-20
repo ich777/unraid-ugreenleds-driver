@@ -17,7 +17,8 @@ do
   xz --check=crc32 --lzma2 $line
 done < <(find /UGREENLEDS/lib/modules/${UNAME}/extra -name "*.ko")
 
-# Maybe include scripts in the driver package itself in a future version
+#Copy over ugreen-diskiomon
+cp ${DATA_DIR}/ugreen_dx4600_leds_controller/scripts/ugreen-diskiomon /UGREENLEDS/usr/bin/ugreen-diskiomon
 
 # Create Slackware Package
 PLUGIN_NAME="ugreen_leds"
@@ -38,5 +39,5 @@ $PLUGIN_NAME:
 $PLUGIN_NAME: Custom $PLUGIN_NAME package for Unraid Kernel v${UNAME%%-*} by ich777
 $PLUGIN_NAME:
 EOF
-${DATA_DIR}/bzroot-extracted-$UNAME/sbin/makepkg -l n -c n $TMP_DIR/$PLUGIN_NAME-$PLUGIN_VERSION-$UNAME-1.txz
+${DATA_DIR}/bzroot-extracted-$UNAME/sbin/makepkg -l n -c y $TMP_DIR/$PLUGIN_NAME-$PLUGIN_VERSION-$UNAME-1.txz
 md5sum $TMP_DIR/$PLUGIN_NAME-$PLUGIN_VERSION-$UNAME-1.txz | awk '{print $1}' > $TMP_DIR/$PLUGIN_NAME-$PLUGIN_VERSION-$UNAME-1.txz.md5
