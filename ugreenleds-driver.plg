@@ -135,9 +135,9 @@ fi
 # Load drivers (because why not?)
 activate
 
-# Check if ugreen-diskiomon is already started
-if ! pidof -f "/usr/bin/ugreen-diskiomon" >/dev/null 2>&amp;1 ; then
-  echo "/usr/bin/ugreen-diskiomon" | at now -M
+# Check if ugreen-leds is already started
+if ! pidof -f "/usr/bin/ugreen-leds" >/dev/null 2>&amp;1 ; then
+  echo "/usr/bin/ugreen-leds" | at now -M
 fi
 
 # Get interface from network config and check if netdevmon is already configured
@@ -212,7 +212,7 @@ echo
 echo "----------------------------------------"
 echo "-----Uninstalling UGREEN LED Driver-----"
 echo "----------------------------------------"
-kill $(pgrep -f "/usr/bin/ugreen-diskiomon") >/dev/null 2>&amp;1
+kill $(pgrep -f "/usr/bin/ugreen-leds") >/dev/null 2>&amp;1
 # Remove plugin related files
 rm -rf &emhttp;
 rm -rf &plugin;
