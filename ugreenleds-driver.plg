@@ -1,13 +1,15 @@
 <?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN [
-  <!ENTITY name      "ugreenleds-driver">
-  <!ENTITY author    "ich777">
-  <!ENTITY version   "2024.06.19">
-  <!ENTITY gitURL    "https://github.com/&author;/unraid-&name;/raw/master">
-  <!ENTITY pluginURL "&gitURL;/&name;.plg">
-  <!ENTITY plugin    "/boot/config/plugins/&name;">
-  <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
-  <!ENTITY packages  "/boot/config/plugins/&name;/packages">
+  <!ENTITY name        "ugreenleds-driver">
+  <!ENTITY author      "ich777">
+  <!ENTITY version     "2024.06.26">
+  <!ENTITY i2c-version "4.3">
+  <!ENTITY i2c-md5     "779c835a2eb2e2ae65319f8de2d6a7d3">
+  <!ENTITY gitURL      "https://github.com/&author;/unraid-&name;/raw/master">
+  <!ENTITY pluginURL   "&gitURL;/&name;.plg">
+  <!ENTITY plugin      "/boot/config/plugins/&name;">
+  <!ENTITY emhttp      "/usr/local/emhttp/plugins/&name;">
+  <!ENTITY packages    "/boot/config/plugins/&name;/packages">
 ]>
 
 <PLUGIN  name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="7.0.0-beta.0.1" support="https://forums.unraid.net/topic/92865-support-ich777-amd-vendor-reset-coraltpu-hpsahba/">
@@ -15,10 +17,25 @@
 
 <CHANGES>
 
+###2024.06.26
+- Bugfixes for LEDs not starting correctly
+
 ###2024.06.19
 - Initial release
 
 </CHANGES>
+
+<FILE Run="/bin/bash">
+<INLINE>
+rm -f $(ls &plugin;/i2c-tools-*-x86_64-1.txz 2>/dev/null|grep -v '&i2c-version;')
+</INLINE>
+</FILE>
+
+<FILE Name="&plugin;/i2c-tools-&i2c-version;-x86_64-1.txz" Run="upgradepkg --install-new">
+<URL>&gitURL;/packages/i2c-tools-&i2c-version;-x86_64-1.txz</URL>
+<MD5>&i2c-md5;</MD5>
+</FILE>
+
 
 <FILE Name="&emhttp;/README.md">
 <INLINE>
@@ -72,12 +89,15 @@ install() {
   /sbin/depmod -a
 }
 
-# Modprobe function
+# Modprobe function including I2C device detection
 activate() {
   /sbin/modprobe i2c-dev
+  /sbin/modprobe led-ugreen
+  sleep 1
+  I2C_DEV=$(i2cdetect -l | grep "SMBus I801 adapter" | grep -Po "i2c-\d+")
+  echo "led-ugreen 0x3a" > /sys/bus/i2c/devices/${I2C_DEV}/new_device 2>/dev/null
   /sbin/modprobe ledtrig-oneshot
   /sbin/modprobe ledtrig-netdev
-  /sbin/modprobe led-ugreen
   sleep 2
 }
 
@@ -142,8 +162,15 @@ fi
 
 # Get interface from network config and check if netdevmon is already configured
 INTERFACE="$(cat /boot/config/network.cfg | grep "IFNAME\[0\]" | cut -d '=' -f2 | sed 's/\"//g' | head -1 | tr -d '[:space:]')"
-if [[ $INTERFACE =~ ^br ]]; then
-  INTERFACE="$(ip -o link show master $INTERFACE | awk '{print $2}' | sed 's/://' | grep -o 'eth[0-9]\+' | head -1 | tr -d '[:space:]')"
+if [ -z "${INTERFACE}" ]; then
+  INTERFACES="$(ls /sys/class/net | grep -E '^eth[0-9]+|^bond[0-9]+|^br[0-9]+' | sed 's/@$//')"
+  if [[ $INTERFACES =~ ^bond ]]; then
+    INTERFACE="$(echo "$INTERFACES" | grep "bond" | head -1 | tr -d '[:space:]')"
+  elif [[ $INTERFACES =~ ^br ]]; then
+    INTERFACE="$(echo "$INTERFACES" | grep "br" | head -1 | tr -d '[:space:]')"
+  elif [[ $INTERFACES =~ ^eth ]]; then
+    INTERFACE="$(echo "$INTERFACES" | grep "eth" | head -1 | tr -d '[:space:]')"
+  fi
 fi
 if [ "$(cat /sys/class/leds/netdev/device_name)" != "${INTERFACE}" ]; then
   netdevmon
