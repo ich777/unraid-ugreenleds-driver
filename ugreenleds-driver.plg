@@ -75,9 +75,9 @@ install() {
 # Modprobe function
 activate() {
   /sbin/modprobe i2c-dev
-  /sbin/modprobe led-ugreen
   /sbin/modprobe ledtrig-oneshot
   /sbin/modprobe ledtrig-netdev
+  /sbin/modprobe led-ugreen
   sleep 2
 }
 
