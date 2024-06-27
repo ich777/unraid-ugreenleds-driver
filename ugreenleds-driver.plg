@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
   <!ENTITY name        "ugreenleds-driver">
   <!ENTITY author      "ich777">
-  <!ENTITY version     "2024.06.26">
+  <!ENTITY version     "2024.06.27">
   <!ENTITY i2c-version "4.3">
   <!ENTITY i2c-md5     "779c835a2eb2e2ae65319f8de2d6a7d3">
   <!ENTITY gitURL      "https://github.com/&author;/unraid-&name;/raw/master">
@@ -16,6 +16,11 @@
 
 
 <CHANGES>
+
+###2024.06.27
+- Bugfixes for HDD LEDs
+- Add DXP480T and set LED to static white
+- Move modprobe routine into ugreen-leds script
 
 ###2024.06.26
 - Bugfixes for LEDs not starting correctly
@@ -89,28 +94,6 @@ install() {
   /sbin/depmod -a
 }
 
-# Modprobe function including I2C device detection
-activate() {
-  /sbin/modprobe i2c-dev
-  /sbin/modprobe led-ugreen
-  sleep 1
-  I2C_DEV=$(i2cdetect -l | grep "SMBus I801 adapter" | grep -Po "i2c-\d+")
-  echo "led-ugreen 0x3a" > /sys/bus/i2c/devices/${I2C_DEV}/new_device 2>/dev/null
-  /sbin/modprobe ledtrig-oneshot
-  /sbin/modprobe ledtrig-netdev
-  sleep 2
-}
-
-# Netdevmon function
-netdevmon() {
-  echo netdev > /sys/class/leds/netdev/trigger
-  echo ${INTERFACE} > /sys/class/leds/netdev/device_name
-  echo 1 > /sys/class/leds/netdev/link
-  echo 1 > /sys/class/leds/netdev/tx
-  echo 1 > /sys/class/leds/netdev/rx
-  echo 200 > /sys/class/leds/netdev/interval
-}
-
 # Define Variables
 KERNEL_V="$(uname -r)"
 PACKAGE="ugreen_leds"
@@ -152,28 +135,13 @@ if ! modinfo led-ugreen -0 >/dev/null 2>&amp;1 ; then
   install
 fi
 
-# Load drivers (because why not?)
-activate
-
-# Check if ugreen-leds is already started
+# Check if ugreen-leds script is already started
 if ! pidof -f "/usr/bin/ugreen-leds" >/dev/null 2>&amp;1 ; then
   echo "/usr/bin/ugreen-leds" | at now -M
-fi
-
-# Get interface from network config and check if netdevmon is already configured
-INTERFACE="$(cat /boot/config/network.cfg | grep "IFNAME\[0\]" | cut -d '=' -f2 | sed 's/\"//g' | head -1 | tr -d '[:space:]')"
-if [ -z "${INTERFACE}" ]; then
-  INTERFACES="$(ls /sys/class/net | grep -E '^eth[0-9]+|^bond[0-9]+|^br[0-9]+' | sed 's/@$//')"
-  if [[ $INTERFACES =~ ^bond ]]; then
-    INTERFACE="$(echo "$INTERFACES" | grep "bond" | head -1 | tr -d '[:space:]')"
-  elif [[ $INTERFACES =~ ^br ]]; then
-    INTERFACE="$(echo "$INTERFACES" | grep "br" | head -1 | tr -d '[:space:]')"
-  elif [[ $INTERFACES =~ ^eth ]]; then
-    INTERFACE="$(echo "$INTERFACES" | grep "eth" | head -1 | tr -d '[:space:]')"
-  fi
-fi
-if [ "$(cat /sys/class/leds/netdev/device_name)" != "${INTERFACE}" ]; then
-  netdevmon
+else
+  kill $(pgrep -f "/usr/bin/ugreen-leds") >/dev/null 2>&amp;1
+  sleep 1
+  echo "/usr/bin/ugreen-leds" | at now -M
 fi
 
 # Download logo
