@@ -136,7 +136,7 @@ if ! modinfo led-ugreen -0 >/dev/null 2>&amp;1 ; then
 fi
 
 # Check if ugreen-leds script is already started
-if ! pidof -f "/usr/bin/ugreen-leds" >/dev/null 2>&amp;1 ; then
+if ! pgrep -f "/usr/bin/ugreen-leds" >/dev/null 2>&amp;1 ; then
   echo "/usr/bin/ugreen-leds" | at now -M
 else
   kill $(pgrep -f "/usr/bin/ugreen-leds") >/dev/null 2>&amp;1
