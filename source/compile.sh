@@ -17,8 +17,8 @@ do
   xz --check=crc32 --lzma2 $line
 done < <(find /UGREENLEDS/lib/modules/${UNAME}/extra -name "*.ko")
 
-#Copy over ugreen-diskiomon
-cp ${DATA_DIR}/ugreen_dx4600_leds_controller/scripts/ugreen-diskiomon /UGREENLEDS/usr/bin/ugreen-diskiomon
+#Copy over ugreen-leds
+cp ${DATA_DIR}/ugreen_dx4600_leds_controller/scripts/unRAID/ugreen-leds /UGREENLEDS/usr/bin/ugreen-leds
 
 # Create Slackware Package
 PLUGIN_NAME="ugreen_leds"
