@@ -2,7 +2,8 @@
 <!DOCTYPE PLUGIN [
   <!ENTITY name        "ugreenleds-driver">
   <!ENTITY author      "ich777">
-  <!ENTITY version     "2024.06.27">
+  <!ENTITY version     "2024.06.28">
+  <!ENTITY md5         "002717c85d93ef4565c55290b473fb77">
   <!ENTITY i2c-version "4.3">
   <!ENTITY i2c-md5     "779c835a2eb2e2ae65319f8de2d6a7d3">
   <!ENTITY gitURL      "https://github.com/&author;/unraid-&name;/raw/master">
@@ -14,8 +15,12 @@
 
 <PLUGIN  name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="7.0.0-beta.0.1" support="https://forums.unraid.net/topic/92865-support-ich777-amd-vendor-reset-coraltpu-hpsahba/">
 
-
 <CHANGES>
+
+###2024.06.28
+- Unteather ugreen-leds script from driver package
+- Add support for DX4700 - thanks miskcoo
+- Add support for DXP2800 - thanks miskcoo
 
 ###2024.06.27
 - Bugfixes for HDD LEDs
@@ -29,6 +34,18 @@
 - Initial release
 
 </CHANGES>
+
+<FILE Run="/bin/bash">
+<INLINE>
+kill $(pgrep -f "/usr/bin/ugreen-leds") >/dev/null 2>&amp;1
+rm -f $(ls &plugin;/&name;-*.txz 2>/dev/null|grep -v '&version;')
+</INLINE>
+</FILE>
+
+<FILE Name="&plugin;/&name;-&version;.txz" Run="upgradepkg --install-new">
+<URL>&gitURL;/packages/&name;-&version;.txz</URL>
+<MD5>&md5;</MD5>
+</FILE>
 
 <FILE Run="/bin/bash">
 <INLINE>
@@ -212,7 +229,7 @@ echo "-----Uninstalling UGREEN LED Driver-----"
 echo "----------------------------------------"
 kill $(pgrep -f "/usr/bin/ugreen-leds") >/dev/null 2>&amp;1
 # Remove plugin related files
-rm -rf &emhttp;
+removepkg &name;-&version; >/dev/null 2>&amp;1
 rm -rf &plugin;
 rm -rf /usr/bin/ugreen-leds
 echo
