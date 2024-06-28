@@ -231,7 +231,6 @@ kill $(pgrep -f "/usr/bin/ugreen-leds") >/dev/null 2>&amp;1
 # Remove plugin related files
 removepkg &name;-&version; >/dev/null 2>&amp;1
 rm -rf &plugin;
-rm -rf /usr/bin/ugreen-leds
 echo
 echo "---------------------------------------------------------------------------"
 echo "---------UGREEN LED Driver uninstalled, please reboot your server!---------"
