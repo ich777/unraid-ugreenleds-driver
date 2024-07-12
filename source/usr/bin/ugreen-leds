@@ -65,7 +65,7 @@ default_netdevmon() {
   echo 1 > /sys/class/leds/netdev/link
   echo 1 > /sys/class/leds/netdev/tx
   echo 1 > /sys/class/leds/netdev/rx
-  echo 200 > /sys/class/leds/netdev/interval
+  echo 500 > /sys/class/leds/netdev/interval
 }
 
 dxp480t_static() {
