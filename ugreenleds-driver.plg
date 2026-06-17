@@ -17,6 +17,11 @@
 
 <CHANGES>
 
+###(unreleased)
+- Add support for DXP4800 GT (AMD-based; LED MCU on a Synopsys DesignWare I2C
+  bus). Builds and loads the i2c-designware bus modules and detects the MCU by
+  chip id. Requires the chip-id-gated write framing in led-ugreen (miskcoo).
+
 ###2024.07.12
 - Increase the interval from netdev to 500ms
 

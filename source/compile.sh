@@ -3,6 +3,9 @@ mkdir -p /UGREENLEDS/lib/modules/${UNAME}/extra
 cd ${DATA_DIR}
 git clone https://github.com/miskcoo/ugreen_dx4600_leds_controller
 cd ${DATA_DIR}/ugreen_dx4600_leds_controller
+# NOTE: DXP4800 GT support requires the chip-id-gated SMBus block-write framing
+# in led-ugreen. That must be present on this ref or the GT's LEDs will read but
+# not write. Tracking PR: miskcoo/ugreen_leds_controller#100 (AMD/DesignWare).
 git checkout master
 PLUGIN_VERSION="$(git log -1 --format="%cs" | sed 's/-//g')"
 
@@ -10,6 +13,25 @@ PLUGIN_VERSION="$(git log -1 --format="%cs" | sed 's/-//g')"
 cd ${DATA_DIR}/ugreen_dx4600_leds_controller/kmod
 make -j${CPU_COUNT}
 cp ${DATA_DIR}/ugreen_dx4600_leds_controller/kmod/led-ugreen.ko /UGREENLEDS/lib/modules/${UNAME}/extra/
+
+# AMD-based models (e.g. DXP4800 GT) need the Synopsys DesignWare I2C bus
+# driver, which the stock Unraid kernel does not build. Compile it as a module
+# from the prepared kernel source so the LED MCU's bus is available.
+KERNEL_SRC="${DATA_DIR}/linux-${UNAME}"
+if [ -d "${KERNEL_SRC}" ]; then
+  ( cd "${KERNEL_SRC}"
+    ./scripts/config --module CONFIG_I2C_DESIGNWARE_CORE \
+                     --module CONFIG_I2C_DESIGNWARE_PLATFORM
+    make olddefconfig
+    make modules_prepare
+    make M=drivers/i2c/busses -j${CPU_COUNT} \
+      CONFIG_I2C_DESIGNWARE_CORE=m CONFIG_I2C_DESIGNWARE_PLATFORM=m modules )
+  cp "${KERNEL_SRC}"/drivers/i2c/busses/i2c-designware-core.ko \
+     "${KERNEL_SRC}"/drivers/i2c/busses/i2c-designware-platform.ko \
+     /UGREENLEDS/lib/modules/${UNAME}/extra/
+else
+  echo "WARNING: kernel source ${KERNEL_SRC} not found; skipping DesignWare modules (DXP4800 GT will not work)"
+fi
 
 #Compress module
 while read -r line

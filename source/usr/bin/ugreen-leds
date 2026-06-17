@@ -59,6 +59,37 @@ default_modules() {
   sleep 2
 }
 
+# AMD-based models (e.g. DXP4800 GT) put the LED MCU on a Synopsys DesignWare
+# I2C controller instead of the Intel "SMBus I801 adapter". Load the DesignWare
+# bus driver and locate the MCU by its chip id (0xc5b2 at register 0x5a) rather
+# than by adapter name, since the bus number is not fixed.
+gt_modules() {
+  /sbin/modprobe i2c-dev
+  /sbin/modprobe i2c-designware-core 2>/dev/null
+  /sbin/modprobe i2c-designware-platform 2>/dev/null
+  /sbin/modprobe led-ugreen
+  sleep 1
+
+  local d b I2C_BUS=""
+  for d in /sys/class/i2c-dev/i2c-*; do
+    b=$(basename "$d" | sed 's/i2c-//')
+    if [ "$(i2cget -y "$b" 0x3a 0x5a w 2>/dev/null)" = "0xc5b2" ]; then
+      I2C_BUS=$b
+      break
+    fi
+  done
+
+  if [ -z "${I2C_BUS}" ]; then
+    logger "ugreen-leds: Error: LED MCU (chip id 0xc5b2) not found on any i2c bus"
+    return 1
+  fi
+  logger "ugreen-leds: Info: LED MCU found on i2c-${I2C_BUS}"
+  echo "led-ugreen 0x3a" > /sys/bus/i2c/devices/i2c-${I2C_BUS}/new_device 2>/dev/null
+  /sbin/modprobe ledtrig-oneshot
+  /sbin/modprobe ledtrig-netdev
+  sleep 2
+}
+
 default_netdevmon() {
   echo netdev > /sys/class/leds/netdev/trigger
   echo ${INTERFACE} > /sys/class/leds/netdev/device_name
@@ -103,6 +134,12 @@ case "${product_name}" in
   DXP2800*) 
     logger "ugreen-leds: Info: UGREEN DXP2800 series"
     default_modules
+    default_netdevmon
+    ;;
+  "DXP4800 GT")   # AMD-based, LED MCU on Synopsys DesignWare bus
+    logger "ugreen-leds: Info: Found UGREEN DXP4800 GT"
+    hctl_map=("1:0:0:0" "2:0:0:0" "3:0:0:0" "4:0:0:0")
+    gt_modules || exit 1
     default_netdevmon
     ;;
   DXP4800*) 

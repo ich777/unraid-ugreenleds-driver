@@ -21,6 +21,7 @@ The driver supports these UGREEN NAS models:
 - **DX4700** series
 - **DXP2800** series
 - **DXP4800** series
+- **DXP4800 GT** (tested) - AMD-based; LED MCU on a Synopsys DesignWare I2C bus (see note below)
 - **DXP8800** series (tested on DXP8800 Plus)
 - **DXP480T** series (tested on DXP480T Plus) - uses static white LED only
 
@@ -64,6 +65,7 @@ The driver supports these UGREEN NAS models:
 ### Special Cases
 - **DXP480T Model**: Uses a special static white LED configuration instead of dynamic monitoring
 - **Model-Specific Mapping**: Different models may use different disk-to-LED mappings (e.g., DXP6800 has custom mapping)
+- **DXP4800 GT**: This AMD-based model puts the LED MCU on a Synopsys DesignWare I2C controller (`AMDI0010`) instead of the Intel SMBus adapter the other models use, and that bus driver is not built into the stock Unraid kernel. The plugin therefore also builds and loads the `i2c-designware-core` / `i2c-designware-platform` modules, and locates the MCU by its chip id (`0xc5b2` at register `0x5a`) rather than by adapter name. Requires the chip-id-gated SMBus block-write framing in the underlying `led-ugreen` driver (from `miskcoo/ugreen_leds_controller`); without it the GT's LEDs read but do not respond to writes.
 
 ## Configuration Options
 
