@@ -1,3 +1,5 @@
+# DEPRECATED
+
 # Unraid UGREEN LED Driver Plugin
 
 This is the repository for the Unraid UGREEN LED Driver plugin based on: https://github.com/miskcoo/ugreen_dx4600_leds_controller
