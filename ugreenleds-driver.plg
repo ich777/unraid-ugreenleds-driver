@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
   <!ENTITY name        "ugreenleds-driver">
   <!ENTITY author      "ich777">
-  <!ENTITY version     "2024.07.12">
+  <!ENTITY version     "2026.09.05">
   <!ENTITY md5         "9f0e36108e2c4520186cd96fad4f200d">
   <!ENTITY i2c-version "4.3">
   <!ENTITY i2c-md5     "779c835a2eb2e2ae65319f8de2d6a7d3">
@@ -13,9 +13,12 @@
   <!ENTITY packages    "/boot/config/plugins/&name;/packages">
 ]>
 
-<PLUGIN  name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="7.0.0-beta.0.1" support="https://forums.unraid.net/topic/92865-support-ich777-amd-vendor-reset-coraltpu-hpsahba/">
+<PLUGIN  name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="7.0.0-beta.0.1" max="7.3.2" support="https://forums.unraid.net/topic/92865-support-ich777-amd-vendor-reset-coraltpu-hpsahba/">
 
 <CHANGES>
+
+###2026.09.05
+- Increase the interval from netdev to 500ms
 
 ###2024.07.12
 - Increase the interval from netdev to 500ms
